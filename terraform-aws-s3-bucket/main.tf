@@ -1,32 +1,23 @@
-# Creating S3 Bucket
-resource "aws_s3_bucket" "s3_bucket" {
-  bucket = var.bucket_name
-  force_destroy = true
-}
+resource "aws_security_group" "demo_security_group" {
+    vpc_id = aws_vpc.demo_vpc.id
 
-#Turning on Versioning for our S3 Bucket
-resource "aws_s3_bucket_versioning" "s3_bucket_versioning" {
-  bucket = aws_s3_bucket.s3_bucket.bucket
-  versioning_configuration {
-  status = var.bucket_versioning_status==true?"Enabled":"Disabled"
-  }
-}
-
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "s3_bucket_encryption" {
-  bucket = aws_s3_bucket.s3_bucket.bucket
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm     = var.bucket_encryption
+    dynamic "ingress" {
+        for_each = var.sg_ports
+        content {
+          from_port   = ingress.value
+          to_port     = ingress.value
+          protocol    = "tcp"
+          cidr_blocks = [var.vpc_cidr]
+        }
     }
-  }
+
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    tags = merge(var.default_tags, { Name = "${var.default_tags["Environment"]} Security Group" }) #Adding new key "Name" and its value "var.default_tags["Environment"]} Security Group" to default_tags, where var.default_tags["Environment"] takes value of Environment key from default.tags and put it in front of " Security Group".
+  
 }
-
-#Creating Object (folder and subfolders) inside our S3 Bucket
-# resource "aws_s3_object" "s3_bucket_object" {
-#   bucket                 = aws_s3_bucket.s3_bucket.bucket
-#   key                    = var.bucket_key
-#   server_side_encryption = var.bucket_encryption
-
-# }
